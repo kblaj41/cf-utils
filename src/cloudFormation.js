@@ -558,12 +558,13 @@ function _buildParams(name, script, parameters) {
       if (parameters[i].ParameterKey == 'EnvironmentStage' || parameters[i].ParameterKey == 'ResourcePrefix') {
         params.push('--context');
         params.push(`"${parameters[i].ParameterKey}=${parameters[i].ParameterValue}"`);
-      }
     }
   }
+  params.push('--context');
+  params.push(`StackName=${name}`);
   if (script) {
     params.push('--context');
-    params.push(`Script=${script}`);
+    params.push(`ScriptPath=${script}`);
   }
   return params;
 }
