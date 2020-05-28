@@ -505,7 +505,7 @@ function destroyWithCdk(name, parameters) {
   return new Promise((resolve, reject) =>
     _runCdk(
       ["destroy", name, "--force"].concat(_buildParams(name, parameters)),
-      (code) => {
+      (code, err) => {
         if (code !== 0) {
           reject("Stack undeploy failed");
         }
@@ -526,11 +526,11 @@ function deployWithCdk(name, script, parameters) {
   return new Promise((resolve, reject) =>
     _runCdk(
       ["deploy", name].concat(_buildParams(name, script, parameters)),
-      (code) => {
-        if (code !== 0) {
-          if (err.indexOf("No changes to deploy") >= 0) {
+      (code, err) => {
+        if (err) {
+          if (err.indexOf(`${name} (no changes)`) >= 0) {
             config.logger.info("There are no changes to apply, continuing....");
-          } else {
+          } else if (code != 0) {
             reject("Stack deploy failed");
             return;
           }
@@ -558,6 +558,7 @@ function _buildParams(name, script, parameters) {
       if (parameters[i].ParameterKey == 'EnvironmentStage' || parameters[i].ParameterKey == 'ResourcePrefix') {
         params.push('--context');
         params.push(`"${parameters[i].ParameterKey}=${parameters[i].ParameterValue}"`);
+      }
     }
   }
   params.push('--context');
@@ -586,7 +587,7 @@ function _runCdk(params, onclose) {
     console.log(data);
     err += data;
   });
-  cli.on('close', onclose);
+  cli.on('close', (code) => onclose(code, err));
 }
 
 
