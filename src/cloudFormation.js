@@ -495,9 +495,98 @@ function pollChangeSet(params) {
 }
 
 
+/**
+ * Delete a stack using the CDK.
+ * @param name fully qualified stack name
+ * @param parameters complete listing of stack inputs
+ * @return {Promise}
+ */
+function destroyWithCdk(name, parameters) {
+  return new Promise((resolve, reject) =>
+    _runCdk(
+      ["destroy", name, "--force"].concat(_buildParams(name, parameters)),
+      (code) => {
+        if (code !== 0) {
+          reject("Stack undeploy failed");
+        }
+        resolve(name);
+      }
+    )
+  );
+}
 
+/**
+ * Deploy stack using the CDK.
+ * @param name fully qualified stack name
+ * @param script full path to stack template
+ * @param parameters complete listing of stack inputs
+ * @return {Promise}
+ */
+function deployWithCdk(name, script, parameters) {
+  return new Promise((resolve, reject) =>
+    _runCdk(
+      ["deploy", name].concat(_buildParams(name, script, parameters)),
+      (code) => {
+        if (code !== 0) {
+          if (err.indexOf("No changes to deploy") >= 0) {
+            config.logger.info("There are no changes to apply, continuing....");
+          } else {
+            reject("Stack deploy failed");
+            return;
+          }
+        }
+        resolve(describeStack(name));
+      }
+    )
+  );
+}
 
+function _buildParams(name, script, parameters) {
+  if (script && !parameters && Array.isArray(script)) {
+    parameters = script;
+    script = undefined;
+  }
+  let params = [
+    "--profile", config.AWS_PROFILE,
+    "--region",  config.AWS_REGION,
+    "--require-approval", "never",
+  ];
+  if (parameters && parameters.length > 0) {
+    for (let i = 0; i < parameters.length; i++) {
+      params.push('--parameters')
+      params.push(`"${name}:${parameters[i].ParameterKey}=${parameters[i].ParameterValue}"`);
+      if (parameters[i].ParameterKey == 'EnvironmentStage' || parameters[i].ParameterKey == 'ResourcePrefix') {
+        params.push('--context');
+        params.push(`"${parameters[i].ParameterKey}=${parameters[i].ParameterValue}"`);
+      }
+    }
+  }
+  if (script) {
+    params.push('--context');
+    params.push(`Script=${script}`);
+  }
+  return params;
+}
 
+function _runCdk(params, onclose) {
+  const cli = spawn(
+    'cdk',
+    params,
+    { shell: true, cwd: 'cdk' }
+  );
+
+  let err = '';
+  cli.stdout.setEncoding('utf8');
+  cli.stderr.setEncoding('utf8');
+  cli.stdout.on('data', (data) => {
+    console.log(data);
+  });
+  cli.stderr.on('data', (data) => {
+    console.log(data);
+    err += data;
+  });
+  cli.on('close', onclose);
+}
 
 
 module.exports = {
@@ -513,4 +602,6 @@ module.exports = {
   pollChangeSet,
   createChangeSet,
   deleteChangeSet,
+  deployWithCdk,
+  destroyWithCdk,
 };
