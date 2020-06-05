@@ -15,6 +15,11 @@ module.exports = {
   cloudFormation: require('./src/cloudFormation'),
 
   /**
+   * CDK stack utilities
+   */
+  cdk: require('./src/cdk'),
+
+  /**
    * Cloud watch log groups cloud formation utilities
    */
   cloudWatch: require('./src/cloudWatch'),
