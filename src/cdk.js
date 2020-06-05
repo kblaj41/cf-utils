@@ -13,7 +13,7 @@ function init(language) {
       ['init', '--language', language],
       (code, err) => {
         if (code !== 0) {
-          reject({ message: 'CDK init failed', err: err});
+          reject({message: 'CDK init failed', err: err});
         }
         resolve();
       }
@@ -33,7 +33,7 @@ function destroy(name, parameters) {
       ['destroy', name, '--force'].concat(_buildParams(name, parameters)),
       (code, err) => {
         if (code !== 0) {
-          reject('Stack undeploy failed');
+          reject({message: 'Stack undeploy failed', err: err});
         }
         resolve(name);
       }
@@ -57,7 +57,7 @@ function deploy(name, script, parameters) {
           if (err.indexOf(`${name} (no changes)`) >= 0) {
             config.logger.info('There are no changes to apply, continuing....');
           } else if (code != 0) {
-            reject('Stack deploy failed');
+            reject({message: 'Stack deploy failed', err: err});
             return;
           }
         }
