@@ -1,6 +1,7 @@
 'use strict';
 let config = require('./config');
 let { spawn } = require('child_process');
+let { describeStack } = require('./cloudFormation');
 
 /**
  * Initialize the CDK
@@ -14,8 +15,9 @@ function init(language) {
       (code, err) => {
         if (code !== 0) {
           reject({message: 'CDK init failed', err: err});
+        } else {
+          resolve();
         }
-        resolve();
       }
     )
   );
@@ -34,8 +36,9 @@ function destroy(name, parameters) {
       (code, err) => {
         if (code !== 0) {
           reject({message: 'Stack undeploy failed', err: err});
+        } else {
+          resolve(name);
         }
-        resolve(name);
       }
     )
   );
@@ -62,6 +65,51 @@ function deploy(name, script, parameters) {
           }
         }
         resolve(describeStack(name));
+      }
+    )
+  );
+}
+
+/**
+ * Diff stack using the CDK.
+ * @param name fully qualified stack name
+ * @param script full path to stack template
+ * @param parameters complete listing of stack inputs
+ * @return {Promise}
+ */
+function diff(name, script, parameters) {
+  console.log('diff: ', name, script, parameters);
+  return new Promise((resolve, reject) =>
+    _runCdk(
+      ['diff', name].concat(_buildParams(name, script, parameters)),
+      (code, err) => {
+        if (err) {
+          reject({message: 'Stack diff failed', err: err});
+        } else {
+          resolve();
+        }
+      }
+    )
+  );
+}
+
+/**
+ * Synth stack using the CDK.
+ * @param name fully qualified stack name
+ * @param script full path to stack template
+ * @param parameters complete listing of stack inputs
+ * @return {Promise}
+ */
+function synth(name, script, parameters) {
+  return new Promise((resolve, reject) =>
+    _runCdk(
+      ['synth', name].concat(_buildParams(name, script, parameters)),
+      (code, err) => {
+        if (err) {
+          reject({message: 'Stack synth failed', err: err});
+        } else {
+          resolve(describeStack(name));
+        }
       }
     )
   );
@@ -117,7 +165,9 @@ function _runCdk(params, onclose) {
 }
 
 module.exports = {
+  diff,
   deploy,
   destroy,
-  init
+  init,
+  synth
 };
