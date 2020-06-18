@@ -78,7 +78,6 @@ function deploy(name, script, parameters) {
  * @return {Promise}
  */
 function diff(name, script, parameters) {
-  console.log('diff: ', name, script, parameters);
   return new Promise((resolve, reject) =>
     _runCdk(
       ['diff', name].concat(_buildParams(name, script, parameters)),
